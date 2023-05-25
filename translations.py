@@ -98,5 +98,11 @@ TRANSLATE = {
     },
     "print help message": {
         ZH: "显示使用方式"
+    },
+    "Back up completed. Press Enter to exit...": {
+        ZH: "备份完毕。按回车键退出程序。"
+    },
+    "Back up aborted. Press Enter to exit...": {
+        ZH: "备份异常中断。按回车键退出程序。"
     }
 }

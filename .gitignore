@@ -1,3 +1,7 @@
 __pycache__
 skip_src.txt
 skip_dst.txt
+.venv
+backup.exe
+backup.spec
+build/

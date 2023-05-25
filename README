@@ -1,0 +1,12 @@
+## Generate exe file
+### Install pyinstaller
+```
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+### Generate exe file using pyinstaller
+```
+pyinstaller backup.py --console --onefile -p . --distpath .
+```

@@ -1,7 +1,7 @@
-from translations import text as t, EN, ZH
+from translations import text as t, EN
 from functools import cache
 from collections import defaultdict
-import os, datetime, sys, collections, shutil, argparse
+import os, datetime, sys, collections, shutil, argparse, json
 
 
 NEW_ENTRY_TOKEN = "+"
@@ -34,26 +34,40 @@ class PseudoDirEntry:
     def _real_path(self):
         return os.path.realpath(self.path)
 
+@cache
+def get_language():
+    file_path = os.path.join(os.path.dirname(sys.argv[0]), "config.json")
+    if os.path.isfile(file_path):
+        with open(file_path, "r") as f:
+            obj = json.load(f)
+    else:
+        obj = {}
+    return obj.get("language", EN).lower()
+
 def tr(text, **kwargs):
-    return t(text, ZH, **kwargs)
+    return t(text, get_language(), **kwargs)
 
 def print_regular(text, end="\n"):
     if end == "" and not text.endswith(" "):
         text += " "
-    left = (" " * PRINT_WIDTH + "|") * (len(prefix) - 1) + " " * PRINT_WIDTH
+    left = (" " * PRINT_WIDTH + "|") * max(1, (len(prefix) - 1)) + " " * PRINT_WIDTH
     print(left + text, end=end)
 
 def print_new_entry():
     # the new entry should have been already pushed to `prefix`
     if len(prefix) > 1:
         print_empty_line()
-        left = (" " * PRINT_WIDTH + "|") * (len(prefix) - 1)
+        left = (" " * PRINT_WIDTH + "|") * max(1, (len(prefix) - 1))
         print(left[:-1] + NEW_ENTRY_TOKEN + "-" * (PRINT_WIDTH - 1) + prefix[-1].src.name)
     else:
-        print(f"[{tr('backup root')}]")
+        if prefix[0].src.name == prefix[0].dst.name:
+            names = prefix[0].src.name
+        else:
+            names = f"{prefix[0].src.name} --> {prefix[0].dst.name}"
+        print(f"[{tr('backup root')}] {names}")
 
 def print_empty_line():
-    left = (" " * PRINT_WIDTH + "|") * (len(prefix) - 1)
+    left = (" " * PRINT_WIDTH + "|") * max(1, (len(prefix) - 1))
     print(left)
 
 def get_input(available_options={}, begin_line=True):
@@ -164,7 +178,7 @@ def get_file_entry_type_string(entry):
         typ = "file"
     else:
         raise Exception(f"Unknown type entry {entry}")
-    return tr(typ)
+    return typ
 
 def entry_short_type(entry):
     if entry.is_symlink():
@@ -322,7 +336,7 @@ def walk(src, dst):
                 is_diff = False
                 entry_typ = get_file_entry_type_string(s)
                 if src_size != dst_size:
-                    print_regular(tr("{entry_typ} sizes of src and dst are different: {src_size}B vs {dst_size}B", entry_typ=entry_typ, src_size=src_size, dst_size=dst_size))
+                    print_regular(tr("{entry_typ} sizes of src and dst are different: {src_size}B vs {dst_size}B", entry_typ=tr(entry_typ), src_size=src_size, dst_size=dst_size))
                     is_diff = True
                 if src_mtime != dst_mtime:
                     print_regular(tr("{entry_typ} last modified time of src and dst are different: {src_time} vs {dst_time}",
@@ -340,9 +354,20 @@ def walk(src, dst):
 
 
 def main():
-    get_roots()
-    print_new_entry()
-    walk(prefix[0].src.path, prefix[0].dst.path)
+    complete = False
+    try:
+        get_roots()
+        print_new_entry()
+        walk(prefix[0].src.path, prefix[0].dst.path)
+        complete = True
+    finally:
+        if not sys.argv[0].endswith(".py"):
+            if complete:
+                msg = tr("Back up completed. Press Enter to exit...")
+            else:
+                msg = tr("Back up aborted. Press Enter to exit...")
+            print()
+            input(msg)
 
 if __name__ == "__main__":
     main()
